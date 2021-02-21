@@ -1,2 +1,2 @@
 python-chess-readthedocs-io-en-stable.pdf
-*.png
+/pieces/*.png
