@@ -1,5 +1,4 @@
 import chess
-from time import sleep
 from random import choice
 
 
@@ -27,8 +26,8 @@ def game_loop(board):
         if board.is_game_over():
             break
         
-        computer_move, computer_move_score = recursive_minimax(board, num_half_moves_ahead=2)
-        print(f"Computer move chosen as {computer_move}, with a score of {computer_move_score}.")
+        computer_move, computer_move_evl = recursive_minimax(board, num_half_moves_ahead=1)
+        print(f"Computer move chosen as {computer_move}, with an evaluation of {computer_move_evl}.")
 
         board.push(computer_move)
         print(board)
@@ -39,57 +38,49 @@ def generate_half_move_ahead(board, maximize=True):
 
     for move in legal_moves.keys():
         analysis_board = board.copy()
-        legal_moves[move] = dumb_move_score(analysis_board, move)
+        analysis_board.push(move)
+        legal_moves[move] = dumb_evl(analysis_board)
     
-    best_score = max(legal_moves.values()) if maximize else min(legal_moves.values())
+    best_evl = max(legal_moves.values()) if maximize else min(legal_moves.values())
 
-    candidate_moves = [move for move,score in legal_moves.items() if score==best_score]
+    candidate_moves = [move for move,evl in legal_moves.items() if evl==best_evl]
 
     best_move = choice(candidate_moves)
     
-    return (best_move, best_score)
+    return (best_move, best_evl)
 
 
 def recursive_minimax(board, num_half_moves_ahead) -> (chess.Move, int):
     if num_half_moves_ahead == 1:
-        best_move, best_score = generate_half_move_ahead(board, maximize=board.turn==chess.BLACK)
-        return (best_move, best_score)
+        best_move, best_evl = generate_half_move_ahead(board, maximize=board.turn==chess.WHITE)
+        return (best_move, best_evl)
     
-    root_moves = list(board.legal_moves)
-    root_moves_scores = []
-    for root_move in root_moves:
-        temp_board = board.copy()
-        temp_board.push(root_move)
-        # try:
-        if temp_board.is_game_over():
-            return (root_move, 100000 if temp_board.result()=='0-1' else -100000)
+    root_moves = dict.fromkeys(board.legal_moves)
+    for move in root_moves:
+        analysis_board = board.copy()
+        analysis_board.push(move)
+
+        if analysis_board.is_game_over():
+            return (move, 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0)
         else:
-            best_move, best_score = recursive_minimax(temp_board, num_half_moves_ahead-1)
-            root_moves_scores.append(best_score)
+            best_move, minimax_evl = recursive_minimax(analysis_board, num_half_moves_ahead-1)
+            root_moves[move] = minimax_evl
     
-    best_score = max(root_moves_scores) if board.turn==chess.BLACK else min(root_moves_score)
-    candidate_moves = []
-    for idx, move_score in enumerate(root_moves_scores):
-        if move_score == best_score:
-            candidate_moves.append(root_moves[idx])
+    best_evl = max(root_moves.values()) if board.turn==chess.WHITE else min(root_moves.values())
+    candidate_moves = [move for move,evl in root_moves.items() if evl==best_evl]
     
-    # if num_half_moves_ahead == NUM_MOVES_AHEAD:
-    #     print()
-    #     print(root_moves)
-    #     print(root_moves_evals)
-    #     print()
-    return (choice(candidate_moves), best_score)
+    return (choice(candidate_moves), best_evl)
 
 
-def dumb_move_score(analysis_board, move):
-    analysis_board.push(move)
-    after_white_score = count_material(analysis_board, chess.WHITE)
-    after_black_score = count_material(analysis_board, chess.BLACK)
-    after_score = after_black_score - after_white_score
+def dumb_evl(analysis_board):
+    # This is "dumb" because we're just counting material
+    white_evl = count_material(analysis_board, chess.WHITE)
+    black_evl = count_material(analysis_board, chess.BLACK)
+    evl = white_evl - black_evl
     if analysis_board.is_game_over():
-        return 100000 if analysis_board.result()=='0-1' else -100000
+        return 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0
 
-    return after_score
+    return evl
 
 
 def count_material(analysis_board, color):
@@ -108,5 +99,5 @@ if __name__=='__main__':
     board = chess.Board()
     print(board)
     game_loop(board)
-    print("The game is over")
+    print(f"The game is over, {board.result()}")
 
