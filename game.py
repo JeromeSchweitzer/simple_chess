@@ -1,5 +1,6 @@
 import chess
 from random import choice
+from time import perf_counter
 
 
 # Constants
@@ -9,8 +10,13 @@ BISHOP_WEIGHT=3
 ROOK_WEIGHT=5
 QUEEN_WEIGHT=9
 
+# Information
+recursive_calls = 0
+
 
 def game_loop(board):
+    global recursive_calls
+
     while not board.is_game_over():
         user_move_str = input("Enter move:      ")
         user_move = chess.Move.from_uci(user_move_str)
@@ -26,8 +32,12 @@ def game_loop(board):
         if board.is_game_over():
             break
         
-        computer_move, computer_move_evl = recursive_minimax(board, num_half_moves_ahead=1)
+        recursive_calls = 0
+        before_time = perf_counter()
+        computer_move, computer_move_evl = recursive_minimax(board, num_half_moves_ahead=3)
+        after_time = perf_counter()
         print(f"Computer move chosen as {computer_move}, with an evaluation of {computer_move_evl}.")
+        print(f"Move chosen in {after_time-before_time:0.4f} seconds; {recursive_calls} recursive calls.")
 
         board.push(computer_move)
         print(board)
@@ -51,6 +61,9 @@ def generate_half_move_ahead(board, maximize=True):
 
 
 def recursive_minimax(board, num_half_moves_ahead) -> (chess.Move, int):
+    global recursive_calls
+    recursive_calls += 1
+    
     if num_half_moves_ahead == 1:
         best_move, best_evl = generate_half_move_ahead(board, maximize=board.turn==chess.WHITE)
         return (best_move, best_evl)
