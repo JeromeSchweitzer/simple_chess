@@ -1,2 +1,3 @@
 python-chess-readthedocs-io-en-stable.pdf
-/pieces/*.png
+pieces/
+.DS_Store

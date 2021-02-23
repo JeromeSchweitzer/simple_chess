@@ -30,12 +30,27 @@ def game_loop(board):
         before_time = perf_counter()
         computer_move, computer_move_evl = recursive_minimax(board, depth=3)
         after_time = perf_counter()
-        
+
         print(f"Computer move chosen as {computer_move}, with an evaluation of {computer_move_evl}.")
         print(f"Move chosen in {after_time-before_time:0.4f} seconds; {recursive_calls} recursive calls.")
 
         board.push(computer_move)
         print(board)
+
+
+# TODO: Implement alpha beta pruning
+# Notes on Alpha Beta pruning
+# 
+# alpha represents the minimum score white is assured,
+# beta represents the maximum score black is assured
+# 
+# alpha starts at -infinity, beta starts at infinity (worst possible scores)
+# 
+# nodes cease to be explored when the maximum score that black is assured is
+# is less than the minimum score that white is assured
+# 
+def recursive_minimax_ab(board, depth, alpha, beta) -> (chess.Move, int):
+    pass
 
 
 def recursive_minimax(board, depth) -> (chess.Move, int):
@@ -53,9 +68,9 @@ def recursive_minimax(board, depth) -> (chess.Move, int):
 
         if analysis_board.is_game_over():   # Don't need to continue here if game over
             return (move, 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0)
-        else:
-            best_move, minimax_evl = recursive_minimax(analysis_board, depth-1)
-            root_moves[move] = minimax_evl
+        
+        best_move, minimax_evl = recursive_minimax(analysis_board, depth-1)
+        root_moves[move] = minimax_evl
     
     best_evl = max(root_moves.values()) if board.turn==chess.WHITE else min(root_moves.values())
     candidate_moves = [move for move,evl in root_moves.items() if evl==best_evl]
@@ -64,13 +79,13 @@ def recursive_minimax(board, depth) -> (chess.Move, int):
 
 
 def dumb_evl(analysis_board):
-    # This is "dumb" because we're just counting material
+    # "dumb" because just counting weighted material
     if analysis_board.is_game_over():   # If game is over, don't bother
         return 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0
 
     white_evl = count_material(analysis_board, chess.WHITE)
     black_evl = count_material(analysis_board, chess.BLACK)
-    evl = white_evl - black_evl
+    evl = white_evl - black_evl         # White is "winning" if evl > 0, else black
 
     return evl
 
