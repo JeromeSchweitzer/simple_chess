@@ -1,3 +1,4 @@
 python-chess-readthedocs-io-en-stable.pdf
 pieces/
 .DS_Store
+venv/
