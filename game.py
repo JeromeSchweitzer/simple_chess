@@ -1,6 +1,11 @@
 import chess
 from random import choice
 from time import perf_counter
+import chess.svg
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPDF, renderPM
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 
 # Constants
@@ -9,6 +14,8 @@ KNIGHT_WEIGHT=3
 BISHOP_WEIGHT=3
 ROOK_WEIGHT=5
 QUEEN_WEIGHT=9
+SVG_FILENAME="board.svg"
+PNG_FILENAME="board.png"
 
 # Information
 recursive_calls = 0
@@ -22,6 +29,7 @@ def game_loop(board):
 
         board.push(user_move)
         print(board)
+        display_svg(board)
 
         if board.is_game_over():
             break
@@ -30,7 +38,7 @@ def game_loop(board):
         before_time = perf_counter()
 
         # computer_move, computer_move_evl = minimax(board, depth=4)
-        computer_move, computer_move_evl = alpha_beta_minimax(board, depth=4, alpha=-99999999, beta=99999999)
+        computer_move, computer_move_evl = alpha_beta_minimax(board, depth=2, alpha=-99999999, beta=99999999)
 
         after_time = perf_counter()
 
@@ -39,6 +47,7 @@ def game_loop(board):
 
         board.push(computer_move)
         print(board)
+        display_svg(board)
 
 
 # TODO: Refactor this function
@@ -165,9 +174,27 @@ def get_user_move(board):
     return user_move
 
 
+# Kind of complicated?
+def display_svg(board):
+    board_svg = chess.svg.board(board)
+    with open(SVG_FILENAME, "w") as board_file:
+        board_file.write(board_svg)
+    
+    board_png = svg2rlg(SVG_FILENAME)
+    renderPM.drawToFile(board_png, PNG_FILENAME, fmt="PNG")
+
+    board_np_arr = mpimg.imread(PNG_FILENAME)
+    plt.imshow(board_np_arr)
+    # plt.draw()
+    # plt.show()
+
+
+
 if __name__=='__main__':
+    plt.ion()
     board = chess.Board()
     print(board)
     game_loop(board)
     print(f"The game is over, {board.result()}")
+    plt.ioff()
 
