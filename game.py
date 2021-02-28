@@ -1,6 +1,7 @@
 import chess
 from random import choice
 from time import perf_counter
+from time import sleep
 import chess.svg
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPDF, renderPM
@@ -24,21 +25,23 @@ recursive_calls = 0
 def game_loop(board):
     global recursive_calls
 
-    while not board.is_game_over():
+    while not board.is_game_over(claim_draw=True):
         user_move = get_user_move(board)
 
         board.push(user_move)
         print(board)
-        display_svg(board)
+        # sleep(0.5)
+        display_board(board)
+        # sleep(0.5)
 
-        if board.is_game_over():
+        if board.is_game_over(claim_draw=True):
             break
         
         recursive_calls = 0
         before_time = perf_counter()
 
         # computer_move, computer_move_evl = minimax(board, depth=4)
-        computer_move, computer_move_evl = alpha_beta_minimax(board, depth=2, alpha=-99999999, beta=99999999)
+        computer_move, computer_move_evl = alpha_beta_minimax(board, depth=3, alpha=-99999999, beta=99999999)
 
         after_time = perf_counter()
 
@@ -47,7 +50,9 @@ def game_loop(board):
 
         board.push(computer_move)
         print(board)
-        display_svg(board)
+        # sleep(0.5)
+        display_board(board)
+        # sleep(0.5)
 
 
 # TODO: Refactor this function
@@ -74,7 +79,7 @@ def alpha_beta_minimax(board, depth, alpha, beta) -> (chess.Move, int):
         analysis_board = board.copy()
         analysis_board.push(move)
 
-        if analysis_board.is_game_over():   # Don't need to continue here if game over
+        if analysis_board.is_game_over(claim_draw=True):   # Don't need to continue here if game over
             evl = 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0
             if board.turn == chess.WHITE:
                 alpha = max(alpha, evl)
@@ -114,7 +119,7 @@ def minimax(board, depth) -> (chess.Move, int):
         analysis_board = board.copy()
         analysis_board.push(move)
 
-        if analysis_board.is_game_over():   # Don't need to continue here if game over
+        if analysis_board.is_game_over(claim_draw=True):   # Don't need to continue here if game over
             return (move, 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0)
         
         best_move, minimax_evl = minimax(analysis_board, depth-1)
@@ -130,7 +135,7 @@ def minimax(board, depth) -> (chess.Move, int):
 #       pins, castling, doubled pawns, any other positional stuff
 def dumb_evl(analysis_board):
     # "dumb" because just counting weighted material
-    if analysis_board.is_game_over():   # If game is over, don't bother
+    if analysis_board.is_game_over(claim_draw=True):   # If game is over, don't bother
         return 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0
 
     white_evl = count_material(analysis_board, chess.WHITE)
@@ -175,7 +180,7 @@ def get_user_move(board):
 
 
 # Kind of complicated?
-def display_svg(board):
+def display_board(board):
     board_svg = chess.svg.board(board)
     with open(SVG_FILENAME, "w") as board_file:
         board_file.write(board_svg)
@@ -184,16 +189,21 @@ def display_svg(board):
     renderPM.drawToFile(board_png, PNG_FILENAME, fmt="PNG")
 
     board_np_arr = mpimg.imread(PNG_FILENAME)
+    # board_np_arr.axis('off')
+    plt.axis('off')
     plt.imshow(board_np_arr)
+    plt.pause(0.5)
     # plt.draw()
     # plt.show()
 
 
-
 if __name__=='__main__':
+    # plt.axis("off")
+    # ax = plt.Axes()
     plt.ion()
     board = chess.Board()
     print(board)
+    display_board(board)
     game_loop(board)
     print(f"The game is over, {board.result()}")
     plt.ioff()
