@@ -20,10 +20,14 @@ PNG_FILENAME="board.png"
 
 # Information
 recursive_calls = 0
+sum_recursive_calls = 0
+move_count = 0
 
 
 def game_loop(board):
     global recursive_calls
+    global move_count
+    global sum_recursive_calls
 
     while not board.is_game_over(claim_draw=True):
         user_move = get_user_move(board)
@@ -42,6 +46,8 @@ def game_loop(board):
 
         # computer_move, computer_move_evl = minimax(board, depth=4)
         computer_move, computer_move_evl = alpha_beta_minimax(board, depth=3, alpha=-99999999, beta=99999999)
+        move_count += 1
+        sum_recursive_calls += recursive_calls
 
         after_time = perf_counter()
 
@@ -74,7 +80,8 @@ def alpha_beta_minimax(board, depth, alpha, beta) -> (chess.Move, int):
         evl = dumb_evl(board)
         return (None, evl)
     
-    root_moves = dict.fromkeys(board.legal_moves)
+    # root_moves = dict.fromkeys(board.legal_moves)
+    root_moves = dict.fromkeys(get_ordered_legal_moves(board))
     for move in root_moves:
         analysis_board = board.copy()
         analysis_board.push(move)
@@ -157,6 +164,21 @@ def count_material(analysis_board, color):
     return material_count
 
 
+# Returning legal moves, attempting to order s.t. alpha beta minimax is optimized
+def get_ordered_legal_moves(board):
+    legal_moves = list(board.legal_moves)
+    ordered_legal_moves = []
+    for move in legal_moves:
+        ordered_legal_moves.insert(0 if board.is_capture(move) else len(ordered_legal_moves), move)
+        # if board.is_capture(move):
+        #     # ordered_legal_moves.append(legal_moves.pop(move))
+        #     ordered_legal_moves.insert(0, move)
+        # else:
+        #     ordered_legal_moves.append()
+    # ordered_legal_moves += legal_moves
+    return ordered_legal_moves
+
+
 def get_user_move(board):
     user_move = None
     valid_move = False
@@ -206,5 +228,7 @@ if __name__=='__main__':
     display_board(board)
     game_loop(board)
     print(f"The game is over, {board.result()}")
+    ave_recursive_calls = sum_recursive_calls / move_count
+    print(f"Average number of recursive calls for this game: {ave_recursive_calls}")
     plt.ioff()
 
