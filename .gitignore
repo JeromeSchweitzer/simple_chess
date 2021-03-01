@@ -1,5 +1,3 @@
 python-chess-readthedocs-io-en-stable.pdf
 .DS_Store
 venv/
-*.png
-*.svg
