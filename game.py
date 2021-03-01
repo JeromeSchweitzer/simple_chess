@@ -1,12 +1,11 @@
 import chess
 from random import choice
 from time import perf_counter
-from time import sleep
 import chess.svg
 from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPDF, renderPM
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import io
 
 
 # Constants
@@ -15,8 +14,8 @@ KNIGHT_WEIGHT=3
 BISHOP_WEIGHT=3
 ROOK_WEIGHT=5
 QUEEN_WEIGHT=9
-SVG_FILENAME="board.svg"
-PNG_FILENAME="board.png"
+DEPTH=3
+INF=100000
 
 # Information
 recursive_calls = 0
@@ -34,9 +33,7 @@ def game_loop(board):
 
         board.push(user_move)
         print(board)
-        # sleep(0.5)
         display_board(board)
-        # sleep(0.5)
 
         if board.is_game_over(claim_draw=True):
             break
@@ -45,7 +42,7 @@ def game_loop(board):
         before_time = perf_counter()
 
         # computer_move, computer_move_evl = minimax(board, depth=4)
-        computer_move, computer_move_evl = alpha_beta_minimax(board, depth=3, alpha=-99999999, beta=99999999)
+        computer_move, computer_move_evl = alpha_beta_minimax(board, depth=DEPTH, alpha=-INF, beta=INF)
         move_count += 1
         sum_recursive_calls += recursive_calls
 
@@ -56,9 +53,7 @@ def game_loop(board):
 
         board.push(computer_move)
         print(board)
-        # sleep(0.5)
         display_board(board)
-        # sleep(0.5)
 
 
 # TODO: Refactor this function
@@ -87,7 +82,7 @@ def alpha_beta_minimax(board, depth, alpha, beta) -> (chess.Move, int):
         analysis_board.push(move)
 
         if analysis_board.is_game_over(claim_draw=True):   # Don't need to continue here if game over
-            evl = 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0
+            evl = INF if analysis_board.result()=='1-0' else -INF if analysis_board.result()=='0-1' else 0
             if board.turn == chess.WHITE:
                 alpha = max(alpha, evl)
             else:
@@ -127,7 +122,7 @@ def minimax(board, depth) -> (chess.Move, int):
         analysis_board.push(move)
 
         if analysis_board.is_game_over(claim_draw=True):   # Don't need to continue here if game over
-            return (move, 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0)
+            return (move, INF if analysis_board.result()=='1-0' else -INF if analysis_board.result()=='0-1' else 0)
         
         best_move, minimax_evl = minimax(analysis_board, depth-1)
         root_moves[move] = minimax_evl
@@ -143,7 +138,7 @@ def minimax(board, depth) -> (chess.Move, int):
 def dumb_evl(analysis_board):
     # "dumb" because just counting weighted material
     if analysis_board.is_game_over(claim_draw=True):   # If game is over, don't bother
-        return 100000 if analysis_board.result()=='1-0' else -100000 if analysis_board.result()=='0-1' else 0
+        return INF if analysis_board.result()=='1-0' else -INF if analysis_board.result()=='0-1' else 0
 
     white_evl = count_material(analysis_board, chess.WHITE)
     black_evl = count_material(analysis_board, chess.BLACK)
@@ -201,32 +196,30 @@ def get_user_move(board):
     return user_move
 
 
-# Kind of complicated?
 def display_board(board):
-    board_svg = chess.svg.board(board)
-    with open(SVG_FILENAME, "w") as board_file:
-        board_file.write(board_svg)
-    
-    board_png = svg2rlg(SVG_FILENAME)
-    renderPM.drawToFile(board_png, PNG_FILENAME, fmt="PNG")
+    board_svg_str = chess.svg.board(board)
 
-    board_np_arr = mpimg.imread(PNG_FILENAME)
-    # board_np_arr.axis('off')
+    board_svg_bytes = io.StringIO(board_svg_str)
+    board_rlg = svg2rlg(board_svg_bytes)
+    board_png_str = board_rlg.asString("png")
+    board_png_bytes = io.BytesIO(board_png_str)
+    board_img = mpimg.imread(board_png_bytes, format="PNG")
+
     plt.axis('off')
-    plt.imshow(board_np_arr)
+    plt.imshow(board_img)
     plt.pause(0.5)
-    # plt.draw()
-    # plt.show()
 
 
 if __name__=='__main__':
-    # plt.axis("off")
-    # ax = plt.Axes()
-    plt.ion()
+    plt.figure(num=f"depth={DEPTH}", figsize=(4.5,4.5))
+
     board = chess.Board()
+
     print(board)
     display_board(board)
+
     game_loop(board)
+
     print(f"The game is over, {board.result()}")
     ave_recursive_calls = sum_recursive_calls / move_count
     print(f"Average number of recursive calls for this game: {ave_recursive_calls}")
